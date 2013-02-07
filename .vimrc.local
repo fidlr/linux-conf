@@ -1,5 +1,7 @@
 "colorscheme vividchalk
 colorscheme molokai
+highlight spellBad cterm=underline
+
 
 " Make program definition and keyboard shortcuts (f2 to close function
 " " definitions window
