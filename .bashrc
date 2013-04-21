@@ -2,6 +2,9 @@
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
+# Edited (YYYY-MM-DD): 2012-06-24
+# Edited by: Ofir Farchy
+
 ###################################
 ######## General settings #########
 ###################################
@@ -88,22 +91,34 @@ esac
 ###### Environment variables ######
 ###################################
 
+# for sort\uniq etc. to be able to cope with unicode
+export LC_ALL=en_US.utf8
+
 export HOST=`hostname`
 
-if [ -d /usr/local/apache-maven/apache-maven-3.0.4 ]; then
-    export M2_HOME=/usr/local/apache-maven/apache-maven-3.0.4
-    export M2=$M2_HOME/bin
-elif [ -d /usr/local/maven-3.0.3 ]; then
-    export M2_HOME=/usr/local/maven-3.0.3/
+if [ -d /usr/local/maven-3.0.3 ]; then
+    export M2_HOME=/usr/local/maven-3.0.3
+elif [ -d /usr/local/maven-3.0.4 ]; then
+    export M2_HOME=/usr/local/maven-3.0.4
 elif [ -d /usr/local/maven ]; then
-        export M2_HOME=/usr/local/maven/
+    export M2_HOME=/usr/local/maven
+elif [ -d /usr/lib/maven ]; then
+    export M2_HOME=/usr/lib/maven
+fi
+
+if [ -n "$M2_HOME" ]; then
+    export PATH="$PATH:$M2_HOME/bin"
 fi
 
 # Adding bin of hadoop related projects to path
-if [ -d /usr/local/hadoop ]; then
-    export PATH="$PATH":/usr/local/hadoop/bin:/usr/local/hbase/bin:/usr/local/hive/bin:.
+if [ -d /usr/lib/hadoop ]; then
+    export HADOOP_HOME=/usr/lib/hadoop
+    export PATH="$PATH:$HADOOP_HOME/bin:."
+    export HADOOP_CONF_DIR=$HADOOP_HOME/conf
+elif [ -d /usr/local/hadoop ]; then
     export HADOOP_HOME=/usr/local/hadoop
     export PATH="$PATH:$HADOOP_HOME/bin:."
+    export HADOOP_CONF_DIR=$HADOOP_HOME/conf
 fi
 
 # HBase binaries
@@ -118,7 +133,14 @@ fi
 
 # MONO stuff
 if [ -d /usr/lib/mono ]; then
-    export MONO_PATH=/usr/lib/mono/
+    export MONO_PATH=/usr/lib/mono
+fi
+
+# Adding Java's home folder (preferable openjdk)
+if [ -d /usr/lib/jvm/java-6-openjdk ]; then
+    export JAVA_HOME=/usr/lib/jvm/java-6-openjdk
+elif [ -d /usr/lib/jvm/java-6-sun ]; then
+    export JAVA_HOME=/usr/lib/jvm/java-6-sun
 fi
 
 # don't put duplicate lines in the history. See bash(1) for more options
@@ -129,7 +151,17 @@ HISTCONTROL=ignoredups:ignorespace
 HISTSIZE=5000
 HISTFILESIZE=20000
 
-export AMZ_MACHINES=/mnt/x/RnD/Hadoop/Amazon\ Machines.txt
+#if [ -d /mnt/x ]; then
+    export AMZ_MACHINES=/mnt/x/RnD/Hadoop/Amazon\ Machines.txt
+#else
+#    export AMZ_MACHINES=/mnt/X/RnD/Hadoop/Amazon\ Machines.txt
+#fi
+
+export REPO='http://tkscm/git/'
+
+if [ -d /usr/lib/oracle/11.2 ]; then
+    export ORACLE_HOME=/usr/lib/oracle/11.2/client
+fi
 
 if [ -f ~/.pystartup ]; then
     export PYTHONSTARTUP=~/.pystartup
@@ -139,21 +171,30 @@ fi
 ######## Useful functions #########
 ###################################
 
-function svnaddu() {
-    FILES=`svnunv`
-    echo $FILES
-    if ask "Add these files to subversion?"
-            then svnunv | xargs svn add
+function setHooks()
+{
+    if [ ! -f ~/.githooks/commit-msg ]; then
+        if [ ! -d ~/.githooks ]; then
+            mkdir ~/.githooks
+        fi
+        cd ~/.githooks
+        echo "Getting up-to-date git hooks..."
+        wget 10.10.1.61/commit-msg
+        chmod 755 ./commit-msg
+        cd -
+    fi
+    if [ -d /mnt/taykey ]; then
+        for dir in `ls /mnt/taykey -aR | grep ".git/hooks:" | awk -F: '{print $1"/"}'`
+        do
+            if [ ! -f $dir/commit-msg ]; then
+                echo "Linking git hooks in '$dir'"
+                ln -s ~/.githooks/commit-msg $dir/commit-msg
+            fi
+        done
     fi
 }
 
-function svnrmu() {
-    FILES=`svnunv`
-    echo $FILES
-    if ask "Delete these files?"
-            then svnunv | xargs rm -rv
-    fi
-}
+#setHooks
 
 function ask()          # See 'killps' for example of use.
 {
@@ -164,28 +205,9 @@ function ask()          # See 'killps' for example of use.
     esac
 }
 
-function svnunv() {
-    FILES=`svn status | grep \? | awk '{print $2}'`
-    echo $FILES
-}
-
-function svnrm() {
-    FILES=`svnmissing`
-    echo $FILES
-    if ask "Delete these files?"
-            then svnmissing | xargs svn rm
-    fi
-}
-
-function svnmissing() {
-    FILES=`svn status | grep \! | awk '{print $2}'`
-    echo $FILES
-}
-
-
 function f () { find -iname "$1" 2>/dev/null; }
 function fd () { find "$1" -iname "$2" 2>/dev/null; }
-function ff () { find / -iname $1 2>/dev/null; }
+function ff () { find . -type f | grep -v \' | xargs -I '{}' grep $1 '{}' -sl; }
 
 # Allow remote connection (over SSH) to jmx beans
 function jc {
@@ -282,9 +304,22 @@ function extract()      # Handy Extract Program.
 }
 
 function fawk {
-    first="awk '{print "
+    if [ -n "${2}" ]; then
+        delim="-F \"${2}\""
+    fi
+    first="awk $delim '{print "
     last="}'"
     cmd="${first}\$${1}${last}"
+    eval $cmd
+}
+
+function showLine {
+    cmd="cat \"${1}\" | awk 'NR==\"${2}\"'"
+    eval $cmd
+}
+
+function pipeShowLine {
+    cmd="awk 'NR==${1}'"
     eval $cmd
 }
 
@@ -315,6 +350,90 @@ function up()
     cd $d
 }
 
+if [ -f /usr/bin/pygmentize ]; then
+    function cless
+    {
+        pygmentize $1 | less -R
+    }
+    alias cmore='cless'
+fi
+
+function setUser()
+{
+    echo -n "Please enter you first name (camel case): "
+    read firstname
+    echo -n "Please enter you last name (camel case): "
+    read lastname
+    echo -n "Please enter you email address: "
+    read email
+    echo -n "Please enter you git user: "
+    read username
+
+    echo -n "Creating a user files ..."
+    mkdir -p /home/$username
+    mkdir -p /home/$username/.m2
+    mkdir -p /home/$username/.ssh
+
+    echo -n "..."
+    cp -f ~/user_bashrc /home/$username/.bashrc
+    cp -f ~/taykeyw.pem /home/$username/.ssh/taykeyw.pem
+
+    echo -n "..."
+    git config --global user.email "$email"
+    git config --global user.name "$firstname $lastname"
+    cp -f ~/.gitconfig /home/$username/.gitconfig
+    echo "..."
+    
+    echo "machine tkscm" > /home/$username/.netrc
+    echo "login $username" >> /home/$username/.netrc
+    echo "password $username" >> /home/$username/.netrc
+
+    echo -n "Please enter you LDAP password: "
+    read password
+    
+    echo -n "Creating a user ..."
+    password=`perl -e 'print crypt($ARGV[0], "password")' $password`
+
+    echo -n "..."
+    useradd --home-dir /home/$username --password $password -s /bin/bash $username
+
+    echo -n "..."    
+    cat mvn_settings.xml |
+        sed 's/username>[^<]*<\/username/username>'$username'<\/username/g' |
+        sed 's/password>[^<]*<\/password/password>'$username'<\/password/g' > /home/$username/.m2/settings.xml
+
+    echo -n "..."    
+    mkdir /mnt/$username/X
+    mkdir /mnt/$username/U
+
+    ln -s /mnt/$username/U /mnt/y
+    ln -s /mnt/$username/U /mnt/u
+    ln -s /mnt/$username/X /mnt/x
+    ln -s /mnt/$username/U /mnt/Y
+    ln -s /mnt/$username/U /mnt/U
+    ln -s /mnt/$username/X /mnt/X
+    chown -R $username:$username /mnt/*
+
+    chown -R $username:$username /home/$username
+
+    echo -n "..."
+    echo "username=$username" > /home/$username/.smbpasswd
+    echo "password=$password" >> /home/$username/.smbpasswd
+    chmod 600 /home/$username/.smbpasswd
+
+    echo "//tkdc01/share			/mnt/$username/X	cifs	credentials=/home/$username/.smbpasswd,iocharset=utf8,codepage=unicode,unicode,file_mode=0777,dir_mode=0777,_netdev	0	0" >> /etc/fstab
+    echo "//tkdc01/share/Users/$username	/mnt/$username/U	cifs	credentials=/home/$username/.smbpasswd,iocharset=utf8,codepage=unicode,unicode,file_mode=0777,dir_mode=0777,_netdev	0	0" >> /etc/fstab
+
+    echo "..."
+    
+    echo -n "Please enter a new hostname: "
+    read hname
+    hostname $hname
+    echo "$hname" > /etc/hostname
+
+    reboot
+}
+
 ##################################
 ############ Aliases: ############
 ##################################
@@ -327,14 +446,13 @@ alias ncftp="xtitle ncFTP ; ncftp"
 # Useful aliases
 alias ks='killall -s 9 skype && skype &>/dev/null &'
 alias kill_skype='ks'
-alias c_hosts='sudo bash -ic "create_hosts"'
-
-if [ -d /mnt/taykey/dev ]; then
-    alias taykey='cd /mnt/taykey/dev/'
+#alias c_hosts='sudo bash -ic "create_hosts"'
+if [ -e '~/.ssh/ec2-instances.txt' ]; then
+    complete -W "$(echo `cat ~/.ssh/ec2-instances.txt |grep vpc |grep ^TAG|awk '{print $5}'`)" sshl
 fi
 
-if [ -f ~/.svn-ignore.log ]; then
-    alias svnignore='svn propset svn:ignore -F ~/.svn-ignore.log ./'
+if [ -d /mnt/taykey ]; then
+    alias taykey='cd /mnt/taykey/'
 fi
 
 # enable color support of ls and also add handy aliases
@@ -353,25 +471,31 @@ alias ll='ls -ahlF --group-directories-first'
 alias la='ls -A'
 alias l='ll -CFh'
 alias lh='ls -h'
-alias tree='tree -Csu'     # nice alternative to 'recursive ls'
-function fif() { find . -type f | grep -v \' | xargs -I '{}' grep -i $1 '{}' -sl; }
+#alias tree='tree -Csu'     # nice alternative to 'recursive ls'
+alias tree="ls -R | grep ':$' | sed -e 's/:$//' -e 's/[^\/]*\//|  /g' -e 's/|  \([^|]\)/\`--\1/g'"
+alias h='history'
+
+function bgd()
+{
+    $1 &
+    disown
+}
+
+alias curl='curl -H "Accept: application/octet-stream"'
 
 alias ..='cd ..'
 alias cd..='cd ..'
 
-alias curlh='curl -H "Accept: application/octet-stream"'
 alias urldecode='python -c "import sys, urllib as ul; print ul.unquote_plus(\" \".join(sys.argv[1:]))"'
-alias urldecode_pipe='python -c "import sys, urllib as ul;
-    line = sys.stdin.readline();
-    while line:
-        print ul.unquote_plus(line);
-        line=sys.stdin.readline();"'
-alias urldecode_pipe2='python -c "import sys, urllib as ul; print  ul.unquote_plus(\" \".join([l for l in sys.stdin.readlines()]))"'
-
+alias urldecode_pipe='python -c "
+import sys, urllib as ul
+line = sys.stdin.readline()
+while line:
+    print ul.unquote_plus(line)
+    line=sys.stdin.readline()"
+'
 
 alias psa='ps -ax'
-alias svnup='svn update'
-alias svnst='svn status'
 
 alias rm='rm -i'
 alias cp='cp -i'
@@ -381,6 +505,9 @@ alias mkdir='mkdir -p'
 
 alias h='history'
 alias j='jobs -l'
+
+alias sl='showLine'
+alias psl='pipeShowLine'
 
 alias path='echo -e ${PATH//:/\\n}'
 alias libpath='echo -e ${LD_LIBRARY_PATH//:/\\n}'
@@ -394,33 +521,15 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 
 # Taykey SSH
 if [ -f ~/.ssh/taykeyw.pem ]; then
+
+    complete -F _ssh sshl
+    complete -F _scp scpl
+
     alias sshl='ssh -i ~/.ssh/taykeyw.pem -l ubuntu'
     alias scpl='scp -i ~/.ssh/taykeyw.pem -rv'
 
     # Remote connection (SSH) to amazon's machines
-    alias ssh_dashboard='sshl z_dashboard'
-    alias ssh_facebook='sshl z_fb_agent'
-    alias ssh_master='sshl z_hadoop_master'
-    alias ssh_slave1='sshl z_hadoop_slave1'
-    alias ssh_slave2='sshl z_hadoop_slave2'
-    alias ssh_slave3='sshl z_hadoop_slave3'
-    alias ssh_slave4='sshl z_hadoop_slave4'
-    alias ssh_test1='sshl z_itay_test'
-    alias ssh_test2='sshl z_itay_test2'
-    #alias ssh_monitor='sshl z_tkapp1'
-    #alias ssh_control='monitor_ssh'
-    #alias ssh_lbq='monitor_ssh'
-    #alias ssh_minerva='sshl z_tkapp2'
-    #alias ssh_minerva1='minerva_ssh'
-    #alias ssh_agents1='sshl z_tkapp3'
-    #alias ssh_agents2='sshl z_tkapp4'
-    #alias ssh_checkers='sshl z_tkapp5'
-    alias ssh_dbservice='sshl z_tkapp6'
-    alias ssh_backends='sshl z_tkapp7'
-    #alias ssh_minerva2='sshl z_tkapp8'
-    alias ssh_trendster='sshl z_trendster'
-    #alias ssh_nagios='sshl z_nagios_server'
-    alias ssh_socks='ssh -D 6666 -i ~/.ssh/taykeyw.pem -g ubuntu@z_hadoop_master -N &'
+    alias ssh_socks='ssh -D 6666 -i ~/.ssh/taykeyw.pem -g ubuntu@z_tk_hdp_master -N &'
 fi
 
 # Taykey related useful aliases
@@ -428,20 +537,6 @@ alias amazon='cat "$AMZ_MACHINES"'
 alias amazong='gedit "$AMZ_MACHINES"'
 #alias amazon='cat /mnt/x/Users/Everybody/Avihoo/ec2/Amazon\ Machines.txt'
 #alias amazong='gedit /mnt/x/Users/Everybody/Avihoo/ec2/Amazon\ Machines.txt'
-# some more ls aliases
-export MONO_PATH='/usr/lib/mono'
-export REPO='https://tk001/svn/Taykey'
-#export M2_HOME='/home/omer/maven'
-export JAVA_HOME='/usr/lib/jvm/java-6-sun'
-export ORACLE_HOME=/usr/lib/oracle/11.2/client
-export ANDROID_HOME=/home/omer/apps/android-sdks
-export PATH="$PATH:$M2_HOME/bin:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools"
-
-function cless {
-        pygmentize $1 | less -R
-	}
-
-alias cmore='cless'
 
 # Taykey HQ's Hadoop related aliases
 if [ -d /usr/local/hadoop ]; then
@@ -454,4 +549,11 @@ if [ -d /usr/local/hbase ]; then
     alias hbase_stop='/usr/local/hbase/bin/stop-hbase.sh'
 fi
 
-source /usr/local/bin/virtualenvwrapper.sh
+alias gupd="ls -aR | grep \".git:\" | awk -F. '{ print \".\"\$2}' | xargs -L 1 bash -c 'cd \"\$1\" && git pull' _"
+
+alias su32='schroot -c percise_i386 -u root'
+alias ch32='schroot -c percise_i386 -u'
+
+cd
+
+fortune
