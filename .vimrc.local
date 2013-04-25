@@ -12,3 +12,7 @@ map <f4> :cnext<cr>
 map <f3> :cpreviou"s<cr>
 map <f12> :close<cr>
 map <f2> <C-W>wq")"
+
+" Absolute line numbers instead of relative numbering in Insert mode
+autocmd InsertEnter * :set number
+autocmd InsertLeave * :set relativenumber
