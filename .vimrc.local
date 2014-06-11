@@ -1,5 +1,6 @@
 "colorscheme vividchalk
-colorscheme molokai
+"colorscheme molokai
+colorscheme candy
 set background=dark
 highlight clear spellBad
 highlight spellBad cterm=underline
@@ -14,5 +15,5 @@ map <f12> :close<cr>
 map <f2> <C-W>wq")"
 
 " Absolute line numbers instead of relative numbering in Insert mode
-autocmd InsertEnter * :set number
-autocmd InsertLeave * :set relativenumber
+"autocmd InsertEnter * :set number
+"autocmd InsertLeave * :set relativenumber
