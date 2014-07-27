@@ -12,8 +12,8 @@ MOUNT="Ignore"
 SCREEN="Ignore"
 
 # External output may be "VGA" or "VGA-0" or "DVI-0" or "TMDS-1"
-EXTERNAL_OUTPUT="HDMI1" #"VGA1"
-INTERNAL_OUTPUT="LVDS1"
+EXTERNAL_OUTPUT="DVI-I-2" #"HDMI2" #"2 #"VGA1"
+INTERNAL_OUTPUT="DVI-I-1" #"HDMI1"
 
 # EXTERNAL_LOCATION may be one of: left, right, above, or below
 EXTERNAL_LOCATION="right"
@@ -42,6 +42,7 @@ usage()
     echo "             - [Single|SingleIn] set internal display (laptop) as a single screen."
     echo "             - [DualExLeft|DualEL] set dual screen display, external will be left of the internal."
     echo "             - [DualExRight|DualER] set dual screen display, external will be right of the internal."
+    echo "             - [Rot] set dual screen display, with rotated external screen." 
     echo -e "      \033[1m-m\033[0m, \033[1m--mount\033[0m"
     echo "          Tells the script if it should mount the network drives (default == $MOUNT)"
     echo "          where the valid values are: [Yes] [No] [Ignore]"
@@ -62,7 +63,7 @@ PARAM=`echo $1 | awk -F= '{print $1}'`
             ;;
         -v | --video)
             SCREEN=$VALUE
-            if [[ ! "Auto SingleEx Single SingleIn DualExLeft DualEL DualExRight DualER DualExLeft2 DualEL2 DualExRight2 DualER2" =~ ( |^)$SCREEN($| ) ]];
+            if [[ ! "Auto SingleEx Single SingleIn DualExLeft DualEL DualExRight DualER DualExLeft2 DualEL2 DualExRight2 DualER2 Rot" =~ ( |^)$SCREEN($| ) ]];
             then
                 echo "invalid screen setting ($SCREEN), valid values: "
                 echo "    [Auto] [SingleEx] [Single] [SingleIn] [DualExLeft] [DualEL] [DualExRight] [DualER]"
@@ -195,6 +196,10 @@ case $SCREEN in
 #        xrandr --output $INTERNAL_OUTPUT --auto --output $EXTERNAL_OUTPUT --auto --primary --right-of $INTERNAL_OUTPUT
         xrandr --output $INTERNAL_OUTPUT --auto --primary --output $EXTERNAL_OUTPUT --auto --right-of $INTERNAL_OUTPUT
         ;;
+    Rot)
+        xrandr --output $EXTERNAL_OUTPUT --auto --primary --rotate left --output $INTERNAL_OUTPUT --auto --right-of $EXTERNAL_OUTPUT --rotate normal
+        xrandr --output $INTERNAL_OUTPUT --pos 1080x232
+        ;; 
     Auto)
         xrandr | grep $EXTERNAL_OUTPUT | grep -q " connected "
 
