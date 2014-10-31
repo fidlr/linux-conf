@@ -2,18 +2,30 @@
 "colorscheme molokai
 colorscheme candy
 set background=dark
+set nocursorline
 highlight clear spellBad
 highlight spellBad cterm=underline
 
-" Make program definition and keyboard shortcuts (f2 to close function
-" " definitions window
-" set makeprg=make
-map <f7> :make<cr>
-map <f4> :cnext<cr>
-map <f3> :cpreviou"s<cr>
-map <f12> :close<cr>
-map <f2> <C-W>wq")"
+" Fix neocomplcache nonsense with automatically showing the autocomplete box
+" and make TAB the autocomplete key (instead of the default spf-13 ESC)
+let g:neocomplcache_disable_auto_complete = 1
+inoremap <expr><TAB> pumvisible() ? "\<C-n>" : <SID>check_back_space() ? "\<TAB>" : "\<C-x>\<C-u>"
 
-" Absolute line numbers instead of relative numbering in Insert mode
+function! s:check_back_space()"{{{
+    let col = col('.') - 1
+    return !col || getline('.')[col - 1] =~ '\s'
+endfunction""}}}"
+
+
+" Make program definition and keyboard shortcuts (f2 to close function definitions window)
+" set makeprg=make  " Should already be set by default. To test: 'set makeprg?'
+map <f7> :make<cr>
+map <f4> :cnext<Cr>
+map <f3> :cprevious<cr>
+map <f12> :close<cr>
+map <f2> <C-W>q
+
+" Absolute line numbers instead of relative numbering in Insert mode, usually
+" fine by default.
 "autocmd InsertEnter * :set number
 "autocmd InsertLeave * :set relativenumber
