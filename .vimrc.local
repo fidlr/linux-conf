@@ -7,9 +7,36 @@ highlight clear spellBad
 highlight spellBad cterm=underline
 
 " Fix neocomplcache nonsense with automatically showing the autocomplete box
-" and make TAB the autocomplete key (instead of the default spf-13 ESC)
+" and make Ctrl+Space the autocomplete key (instead of the default spf-13 ESC)
+" map <Tab> in insert mode to regular tab behaviour.
 let g:neocomplcache_disable_auto_complete = 1
-inoremap <expr><TAB> pumvisible() ? "\<C-n>" : <SID>check_back_space() ? "\<TAB>" : "\<C-x>\<C-u>"
+iunmap <Tab>
+" Disable popup window on cursor moved in insert mode
+let g:neocomplete#enable_at_startup = 0
+
+" inoremap <expr><Tab> pumvisible() ? "\<C-n>" : <SID>check_back_space() ? "\<TAB>" : "\<C-x>\<C-u>"
+inoremap <expr> <C-Space> pumvisible() \|\| &omnifunc == '' ?
+\ "\<lt>C-n>" :
+\ "\<lt>C-x>\<lt>C-o><c-r>=pumvisible() ?" .
+\ "\"\\<lt>c-n>\\<lt>c-p>\\<lt>c-n>\" :" .
+\ "\" \\<lt>bs>\\<lt>C-n>\"\<CR>"
+imap <C-@> <C-Space>
+
+" Some autocomplete popup menu definitions taken from:
+"   http://vim.wikia.com/wiki/Make_Vim_completion_popup_menu_work_just_like_in_an_IDE
+"  Vim's popup menu doesn't select the first completion item, but rather just inserts 
+"  the longest common text of all matches; the menu will come up even if there's only one match
+let g:acp_enableAtStartup = 0
+set completeopt=longest,menuone
+" Enter key will select the highlighted menu item when the autocomplete menu is open
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+" better navigation in autocomplete menu
+inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
+  \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
+
+inoremap <expr> <M-,> pumvisible() ? '<C-n>' :
+  \ '<C-x><C-o><C-n><C-p><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
+
 
 function! s:check_back_space()"{{{
     let col = col('.') - 1
@@ -25,7 +52,38 @@ map <f3> :cprevious<cr>
 map <f12> :close<cr>
 map <f2> <C-W>q
 
+" Map F5 to a simple menu of buffers 
+nnoremap <F5> :buffers<CR>:buffer<Space>
+
 " Absolute line numbers instead of relative numbering in Insert mode, usually
 " fine by default.
 "autocmd InsertEnter * :set number
 "autocmd InsertLeave * :set relativenumber
+
+" Disable annoying closing of quotes, braces, tags, etc.
+UnBundle 'spf13/vim-autoclose'
+UnBundle 'amirh/HTML-AutoCloseTag'
+let g:autoclose_on = 0
+
+" start out files with all folds opened
+autocmd Syntax * normal zR
+let g:DisableAutoPHPFolding = 1
+
+set shiftwidth=4                " Use indents of 4 spaces
+set tabstop=4                   " An indentation every two columns
+set softtabstop=4               " Let backspace delete indent
+
+" the following lines from the spf vimrc cause delays in mode switching
+" couldn't figure out a way to fix this aside from commenting the lines
+" in the main .spf-13 .vimrc
+"map ^[[F $
+"imap ^[[F ^O$
+"map ^[[H g0
+"imap ^[[H ^Og0
+
+" replace parts of airline status bar we aren't using with information we can
+let g:airline_section_b = '%{getcwd()}'
+let g:airline_section_c = '%t'
+
+" don't display indent guides on startup ( enable with ,ig )
+let g:indent_guides_enable_on_vim_startup = 0
