@@ -1,0 +1,20 @@
+# This file provides auto completion for cg and cgg 
+# which are defined in the bashrc as
+# function cg() { cd ~/code/github/$1 }
+# function cgg() { cd ~/code/3rdparty/$1 }
+
+# place this file in /etc/bash_completion.d/
+
+_cg () {
+    # Set
+    IFS=$'\n' tmp=( $(compgen -W "$(ls ~/code/github)" -- "${COMP_WORDS[$COMP_CWORD]}" ))
+    COMPREPLY=( "${tmp[@]// /\ }" )
+}
+complete -o default -F _cg cg
+
+_cgg () {
+    # Set
+    IFS=$'\n' tmp=( $(compgen -W "$(ls ~/code/3rdparty)" -- "${COMP_WORDS[$COMP_CWORD]}" ))
+    COMPREPLY=( "${tmp[@]// /\ }" )
+}
+complete -o default -F _cgg cgg
